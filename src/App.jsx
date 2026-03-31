@@ -15,6 +15,62 @@ function prettyLabel(key = "") {
 
 /* ── Tab-specific renderers ── */
 
+function SummaryTab({ data }) {
+  if (!data) return null;
+  return (
+    <div className="tab-content">
+      <div className="summary-hero">
+        <h2 className="summary-title">Executive Summary</h2>
+        <p className="summary-text">{data.executive_summary}</p>
+      </div>
+
+      {data.key_insight && (
+        <div className="kv-card" style={{ borderLeft: "3px solid var(--gold)" }}>
+          <div className="kv-key">Wichtigste Erkenntnis</div>
+          <div className="kv-value">{data.key_insight}</div>
+        </div>
+      )}
+
+      {data.target_audience_insight && (
+        <div className="kv-card" style={{ borderLeft: "3px solid var(--blue, #5ea8d6)" }}>
+          <div className="kv-key">Zielgruppen-Insight (aus Community-Recherche)</div>
+          <div className="kv-value">{data.target_audience_insight}</div>
+        </div>
+      )}
+
+      {data.biggest_opportunity && (
+        <div className="kv-card" style={{ borderLeft: "3px solid var(--green, #1fbf75)" }}>
+          <div className="kv-key">Groesste Chance</div>
+          <div className="kv-value">{data.biggest_opportunity}</div>
+        </div>
+      )}
+
+      {data.immediate_actions?.length > 0 && (
+        <>
+          <h3 className="section-title gold-accent">Sofort umsetzen</h3>
+          <div className="stack-sm">
+            {data.immediate_actions.map((a, i) => (
+              <div key={i} className="funnel-step">
+                <div className="funnel-step-num">{i + 1}</div>
+                <div className="funnel-step-body">
+                  <p>{a}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.expected_impact && (
+        <div className="kv-card urgency-card">
+          <div className="kv-key">Erwarteter Impact</div>
+          <div className="kv-value">{data.expected_impact}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AuditTab({ data }) {
   if (!data) return null;
   const n = Number(data.score);
@@ -393,6 +449,7 @@ function SpecTab({ data }) {
 }
 
 const TAB_RENDERERS = {
+  summary: SummaryTab,
   audit: AuditTab,
   offer: OfferTab,
   pain: PainTab,
@@ -407,7 +464,7 @@ const TAB_RENDERERS = {
 export default function App() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [aw, setAw] = useState(3);
-  const [tab, setTab] = useState("audit");
+  const [tab, setTab] = useState("summary");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -489,7 +546,13 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
           const rr = await fetch("/api/research", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: form.url?.trim(), industry: form.br?.trim(), product: form.pr?.trim() }),
+            body: JSON.stringify({
+              url: form.url?.trim(),
+              industry: form.br?.trim(),
+              product: form.pr?.trim(),
+              targetAudience: form.zg?.trim(),
+              painPoints: form.sm?.trim(),
+            }),
           });
           const rd = await rr.json();
           if (rd.ok) researchData = rd.data;
@@ -533,7 +596,7 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
       const merged = { ...p1, ...p2, ...p3 };
 
       setResult(merged);
-      setTab("audit");
+      setTab("summary");
       setLs(STEPS.length - 1);
     } catch (e) {
       setError(e?.message || "Unbekannter Fehler");
@@ -554,7 +617,7 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
   };
 
   const TabRenderer = TAB_RENDERERS[tab];
-  const tabData = tab === "hooks" ? result?.hooks : result?.[tab];
+  const tabData = tab === "hooks" ? result?.hooks : tab === "summary" ? result?.summary : result?.[tab];
 
   return (
     <div className="app-shell">

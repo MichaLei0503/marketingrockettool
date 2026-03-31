@@ -207,6 +207,24 @@ export function buildResearchContext(researchData) {
     parts.push("Nutze diese aktuellen Marktdaten um Trends und Wettbewerber-Strategien einzubeziehen.");
   }
 
+  if (researchData.forumData?.length) {
+    parts.push("\n--- FORUM FORAGING (echte Schmerzpunkte aus Reddit/Foren) ---");
+    parts.push("WICHTIG: Das sind ECHTE Aussagen von echten Menschen. Nutze ihre EXAKTE Sprache für Copy.");
+    for (const f of researchData.forumData.slice(0, 10)) {
+      const sub = f.subreddit ? `[r/${f.subreddit}]` : `[${f.source}]`;
+      parts.push(`${sub} "${f.title}"${f.text ? `: ${f.text.slice(0, 300)}` : ""}`);
+    }
+    parts.push("→ Extrahiere: Exakte Schmerzsprache, emotionale Trigger, Wunsch-Ergebnisse, Einwände.");
+  }
+
+  if (researchData.youtubeComments?.length) {
+    parts.push("\n--- YOUTUBE-KOMMENTARE (echte Zielgruppen-Stimmen) ---");
+    for (const c of researchData.youtubeComments.slice(0, 10)) {
+      parts.push(`• [${c.videoTitle?.slice(0, 50)}] "${c.text.slice(0, 250)}" (${c.likes} Likes)`);
+    }
+    parts.push("→ Nutze diese echten Kommentare um Pain Points und Wünsche der Zielgruppe zu verstehen.");
+  }
+
   if (researchData.adInsights?.length) {
     parts.push("\n--- AD-LIBRARY INSIGHTS (langfristig erfolgreiche Ads) ---");
     for (const a of researchData.adInsights) {

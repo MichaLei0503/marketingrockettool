@@ -104,6 +104,43 @@ function badge(text, color, x, yPos) {
 
 // --- Section renderers ---
 
+function renderSummary(summary) {
+  sectionTitle("Executive Summary");
+
+  if (summary.executive_summary) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 65, 75);
+    const lines = doc.splitTextToSize(summary.executive_summary, CONTENT_W);
+    for (const line of lines) { checkPage(5); doc.text(line, MARGIN, y); y += 5; }
+    y += 4;
+  }
+
+  if (summary.key_insight) { subTitle("Wichtigste Erkenntnis"); bodyText(summary.key_insight); }
+  if (summary.target_audience_insight) { subTitle("Zielgruppen-Insight"); bodyText(summary.target_audience_insight); }
+  if (summary.biggest_opportunity) { subTitle("Groesste Chance"); bodyText(summary.biggest_opportunity); }
+
+  if (summary.immediate_actions?.length) {
+    subTitle("Sofort umsetzen");
+    for (let i = 0; i < summary.immediate_actions.length; i++) {
+      checkPage(8);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...COLORS.gold);
+      doc.text(`${i + 1}.`, MARGIN + 2, y);
+      doc.setTextColor(60, 65, 75);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(summary.immediate_actions[i], CONTENT_W - 10);
+      doc.text(lines[0], MARGIN + 8, y);
+      y += 4.5;
+      for (let j = 1; j < lines.length; j++) { checkPage(5); doc.text(lines[j], MARGIN + 8, y); y += 4.5; }
+    }
+    y += 2;
+  }
+
+  if (summary.expected_impact) { subTitle("Erwarteter Impact"); bodyText(summary.expected_impact); }
+}
+
 function renderAudit(audit) {
   sectionTitle("Audit – Marketing Bewertung");
 
@@ -451,6 +488,7 @@ export async function generatePdf(result, form, awarenessLevel) {
   y = 25;
   doc.setFillColor(...COLORS.white);
 
+  if (result.summary) renderSummary(result.summary);
   if (result.audit) renderAudit(result.audit);
   if (result.offer) renderOffer(result.offer);
   if (result.pain) renderPain(result.pain);

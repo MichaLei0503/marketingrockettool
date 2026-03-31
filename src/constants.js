@@ -1,6 +1,7 @@
 export const STORAGE_KEY = "scale_engine_state_v2";
 
 export const TABS = [
+  { id: "summary", label: "Summary", icon: "📋" },
   { id: "audit", label: "Audit", icon: "📊" },
   { id: "offer", label: "Offer", icon: "🎯" },
   { id: "pain", label: "Pain", icon: "💔" },
@@ -11,11 +12,11 @@ export const TABS = [
 ];
 
 export const STEPS = [
-  "Markt recherchieren",
-  "Kontext analysieren",
-  "Zielgruppe modellieren",
-  "Analyse generieren",
-  "Ergebnis strukturieren",
+  "Foren & Communities durchsuchen",
+  "Zielgruppe analysieren",
+  "Schmerzpunkte identifizieren",
+  "Strategie generieren",
+  "Zusammenfassung erstellen",
 ];
 
 export const AWARENESS = [
