@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CopyBtn from "./components/CopyBtn";
 import { AWARENESS, EMPTY_FORM, STEPS, STORAGE_KEY, TABS } from "./constants";
 
-async function exportPdf(result, form, aw) {
-  const { generatePdf } = await import("./utils/generatePdf");
-  await generatePdf(result, form, aw);
+async function exportReport(result, form, aw) {
+  const { generateReport } = await import("./utils/generateReport");
+  generateReport(result, form, aw);
 }
 
 /* ── helpers ── */
@@ -638,10 +638,10 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
                 disabled={pdfBusy}
                 onClick={async () => {
                   setPdfBusy(true);
-                  try { await exportPdf(result, form, aw); } finally { setPdfBusy(false); }
+                  try { await exportReport(result, form, aw); } finally { setPdfBusy(false); }
                 }}
               >
-                {pdfBusy ? "PDF…" : "PDF herunterladen"}
+                {pdfBusy ? "Wird erstellt…" : "Report herunterladen"}
               </button>
             )}
             <CopyBtn
