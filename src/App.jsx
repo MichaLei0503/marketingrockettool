@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CopyBtn from "./components/CopyBtn";
 import { AWARENESS, EMPTY_FORM, STEPS, STORAGE_KEY, TABS } from "./constants";
 
+async function exportPdf(result, form, aw) {
+  const { generatePdf } = await import("./utils/generatePdf");
+  await generatePdf(result, form, aw);
+}
+
 /* ── helpers ── */
 
 function prettyLabel(key = "") {
@@ -407,6 +412,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ls, setLs] = useState(-1);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const timer = useRef(null);
 
   useEffect(() => {
@@ -473,10 +479,24 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
 `;
 
     try {
+      // Optional: research data (website scan + web search)
+      let researchData = null;
+      if (form.url?.trim() || form.br?.trim()) {
+        try {
+          const rr = await fetch("/api/research", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: form.url?.trim(), industry: form.br?.trim(), product: form.pr?.trim() }),
+          });
+          const rd = await rr.json();
+          if (rd.ok) researchData = rd.data;
+        } catch { /* research is optional — continue without */ }
+      }
+
       const res = await fetch("/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, awarenessLevel: aw }),
+        body: JSON.stringify({ prompt, awarenessLevel: aw, researchData }),
       });
 
       const data = await res.json();
@@ -522,6 +542,19 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
             </p>
           </div>
           <div className="hero-actions">
+            {result && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={pdfBusy}
+                onClick={async () => {
+                  setPdfBusy(true);
+                  try { await exportPdf(result, form, aw); } finally { setPdfBusy(false); }
+                }}
+              >
+                {pdfBusy ? "PDF…" : "PDF herunterladen"}
+              </button>
+            )}
             <CopyBtn
               text={result ? JSON.stringify(result, null, 2) : ""}
               label="JSON kopieren"

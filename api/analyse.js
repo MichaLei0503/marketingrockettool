@@ -1,5 +1,6 @@
 import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { MARKETING_KNOWLEDGE, buildResearchContext } from "./knowledge.js";
 
 const JSON_STRUCTURE = `{
   "audit": { "score": 0, "diagnosis": "", "wins": [], "leaks": [], "fixes": [{"issue":"","fix":"","impact":"hoch|mittel|niedrig"}] },
@@ -41,10 +42,13 @@ Bonusse und zeitlich begrenzte Angebote sind entscheidend.`,
   };
 
   return `Du bist SCALE ENGINE, ein Elite Direct-Response Marketing Strategist.
+Du kombinierst die besten Strategien von Alex Hormozi, Russell Brunson und den erfolgreichsten Direct-Response Marketern der Welt.
 
 Deine Aufgabe: Erstelle eine vollständige, conversion-optimierte Marketing-Analyse.
 
 ${awarenessInstructions[awarenessLevel] || awarenessInstructions[3]}
+
+${MARKETING_KNOWLEDGE}
 
 QUALITÄTSSTANDARDS:
 - Jeder Hook muss sofort Aufmerksamkeit greifen – kein generischer Filler
@@ -91,7 +95,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, awarenessLevel } = req.body || {};
+  const { prompt, awarenessLevel, researchData } = req.body || {};
 
   if (!prompt) {
     return res.status(400).json({ error: "prompt fehlt" });
@@ -109,11 +113,14 @@ export default async function handler(req, res) {
   try {
     const anthropic = createAnthropic({ apiKey });
 
+    const researchContext = buildResearchContext(researchData);
+    const fullPrompt = researchContext ? prompt + researchContext : prompt;
+
     const result = await generateText({
       model: anthropic(modelId),
       system: buildSystemPrompt(awarenessLevel || 3),
-      prompt,
-      maxTokens: 8000,
+      prompt: fullPrompt,
+      maxTokens: 10000,
       temperature: 0.3,
     });
 

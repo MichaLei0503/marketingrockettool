@@ -11,6 +11,7 @@ export const TABS = [
 ];
 
 export const STEPS = [
+  "Markt recherchieren",
   "Kontext analysieren",
   "Zielgruppe modellieren",
   "Analyse generieren",

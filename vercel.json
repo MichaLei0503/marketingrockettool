@@ -1,3 +1,7 @@
 {
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/analyse.js": { "maxDuration": 60 },
+    "api/research.js": { "maxDuration": 15 }
+  }
 }

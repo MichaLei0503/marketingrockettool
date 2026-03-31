@@ -29,9 +29,11 @@ function apiPlugin() {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith("/api/")) return next();
 
-        // Dynamic import of the handler
+        // Dynamic import of the handler based on URL
         try {
-          const mod = await import("./api/analyse.js");
+          const route = req.url.split("?")[0]; // e.g. /api/analyse or /api/research
+          const filePath = `.${route}.js`;      // e.g. ./api/analyse.js
+          const mod = await import(/* @vite-ignore */ filePath);
           const handler = mod.default;
 
           // Parse JSON body
