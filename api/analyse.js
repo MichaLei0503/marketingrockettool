@@ -39,13 +39,14 @@ const CORE_KNOWLEDGE = `FRAMEWORKS:
 - Funnel: Nie Traffic auf Homepage. Dedizierte Landingpages. Break-Even 30 Tage.`;
 
 function extractJson(text) {
-  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  const start = cleaned.indexOf("{");
+  // Find the first '{' — don't strip backticks globally (corrupts JSON values)
+  const start = text.indexOf("{");
   if (start === -1) return null;
 
+  // Try 1: Find matching closing brace with proper string tracking
   let depth = 0, inString = false, escaped = false;
-  for (let i = start; i < cleaned.length; i++) {
-    const ch = cleaned[i];
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
     if (inString) {
       if (escaped) { escaped = false; continue; }
       if (ch === "\\") { escaped = true; continue; }
@@ -56,22 +57,35 @@ function extractJson(text) {
     if (ch === "{") depth++;
     if (ch === "}") {
       depth--;
-      if (depth === 0) return cleaned.slice(start, i + 1);
+      if (depth === 0) {
+        const candidate = text.slice(start, i + 1);
+        try { JSON.parse(candidate); return candidate; } catch {
+          // Matched braces but invalid JSON — continue to repair
+          break;
+        }
+      }
     }
   }
 
-  // JSON truncated — try to repair by closing open brackets/braces
-  let partial = cleaned.slice(start);
-  // Remove trailing incomplete content: find last complete value
-  // Strip from last unmatched quote to end
-  if (inString) {
-    // We're inside a string — find and close it, then trim
-    partial = partial.replace(/"[^"\\]*(?:\\.[^"\\]*)*$/, '"');
+  // Try 2: JSON might be truncated — repair by closing open structures
+  let partial = text.slice(start);
+  // Strip trailing markdown closing fence if present
+  partial = partial.replace(/\s*```\s*$/, "");
+
+  // If inside an unclosed string, close it
+  let inStr = false, esc = false;
+  for (let i = 0; i < partial.length; i++) {
+    const c = partial[i];
+    if (inStr) { if (esc) { esc = false; } else if (c === "\\") { esc = true; } else if (c === '"') { inStr = false; } continue; }
+    if (c === '"') inStr = true;
   }
-  // Remove trailing comma or incomplete key-value
+  if (inStr) partial += '"';
+
+  // Remove trailing incomplete key-value pairs or commas
   partial = partial.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, "");
   partial = partial.replace(/,\s*$/, "");
-  // Count open brackets and braces
+
+  // Count and close open brackets/braces
   let braces = 0, brackets = 0;
   let inStr2 = false, esc2 = false;
   for (let i = 0; i < partial.length; i++) {
