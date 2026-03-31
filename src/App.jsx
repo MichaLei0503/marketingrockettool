@@ -414,6 +414,7 @@ export default function App() {
   const [ls, setLs] = useState(-1);
   const [pdfBusy, setPdfBusy] = useState(false);
   const timer = useRef(null);
+  const hydrated = useRef(false);
 
   useEffect(() => {
     try {
@@ -425,9 +426,11 @@ export default function App() {
       if (parsed?.result) setResult(parsed.result);
       if (parsed?.tab) setTab(parsed.tab);
     } catch {}
+    hydrated.current = true;
   }, []);
 
   useEffect(() => {
+    if (!hydrated.current) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, aw, result, tab }));
     } catch {}
