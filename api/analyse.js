@@ -1,70 +1,48 @@
-import { streamText } from "ai";
+import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { MARKETING_KNOWLEDGE, buildResearchContext } from "./knowledge.js";
 
-const JSON_STRUCTURE = `{
+/**
+ * Split analysis into focused sections.
+ * Client calls this endpoint twice in parallel with different `part` values.
+ * Each call generates fewer tokens and completes within 60s.
+ */
+
+const STRUCTURES = {
+  analysis: `{
   "audit": { "score": 0, "diagnosis": "", "wins": [], "leaks": [], "fixes": [{"issue":"","fix":"","impact":"hoch|mittel|niedrig"}] },
   "offer": { "headline": "", "subheadline": "", "promise": "", "bullets": [], "guarantee": "", "bonuses": [{"name":"","value":"","description":""}], "cta": "", "urgency": "" },
   "pain": { "core_pain": "", "surface_pains": [], "hidden_pains": [], "desired_outcomes": [], "objections": [{"objection":"","reframe":""}], "emotional_triggers": [] },
+  "spec": { "avatar": {"name":"","age":"","role":"","frustrations":[],"goals":[],"media_habits":[]}, "mechanism": "", "positioning": "", "tone": "", "channels": [{"channel":"","priority":"primär|sekundär|tertiär","reason":""}], "brand_voice": [] }
+}`,
+  creative: `{
   "hooks": [{"hook":"","angle":"","platform":"Meta|TikTok|YouTube|LinkedIn|Google|Universal","type":"pattern_interrupt|scroll_stopper|curiosity|controversy|storytelling|social_proof"}],
   "scripts": { "ads": [{"platform":"","format":"","hook":"","body":"","cta":""}], "emails": [{"purpose":"welcome|nurture|sales|abandoned_cart|reactivation","subject":"","preview":"","body":""}], "landing_page": {"hero_headline":"","hero_subheadline":"","sections":[{"type":"","content":""}]} },
-  "funnel": { "strategy": "", "steps": [{"name":"","description":"","conversion_goal":"","content_type":""}], "kpis": [{"metric":"","target":"","why":""}] },
-  "spec": { "avatar": {"name":"","age":"","role":"","frustrations":[],"goals":[],"media_habits":[]}, "mechanism": "", "positioning": "", "tone": "", "channels": [{"channel":"","priority":"primär|sekundär|tertiär","reason":""}], "brand_voice": [] }
-}`;
+  "funnel": { "strategy": "", "steps": [{"name":"","description":"","conversion_goal":"","content_type":""}], "kpis": [{"metric":"","target":"","why":""}] }
+}`,
+};
+
+const PART_INSTRUCTIONS = {
+  analysis: `Erstelle TEIL 1 der Analyse: Audit (Score 0-100 + Diagnose + Wins/Leaks/Fixes), Offer (Godfather-Angebot), Pain (Schmerzanalyse + Einwände), Spec (Avatar + Mechanismus + Kanäle).`,
+  creative: `Erstelle TEIL 2 der Analyse: Hooks (mindestens 8, Thumb-Stop in 0.5s), Scripts (mind. 3 Ads + 3 Emails, copy-paste-fertig + Landing Page), Funnel (Strategie + Steps + KPIs).`,
+};
 
 function buildSystemPrompt(awarenessLevel) {
-  const awarenessInstructions = {
-    1: `Der Kunde ist UNAWARE – kennt weder sein Problem noch eine Lösung.
-Fokus: Problemaufdeckung, emotionale Trigger, Education-Content.
-Hooks müssen neugierig machen ohne direkt zu verkaufen.
-Funnel beginnt mit Awareness-Content und Lead Magnets.
-Ads sollen Probleme aufzeigen die der Kunde noch nicht benennen kann.`,
-    2: `Der Kunde ist PROBLEM AWARE – spürt den Schmerz, kennt aber keine Lösung.
-Fokus: Problemverstärkung, Agitation, dann Lösungsrichtung zeigen.
-Hooks sollen den Schmerz validieren ("Kennst du das?").
-Funnel braucht Education- und Nurturing-Phase vor dem Angebot.
-E-Mails fokussieren auf Empathie und schrittweise Lösung.`,
-    3: `Der Kunde ist SOLUTION AWARE – kennt Lösungswege, aber nicht dieses Produkt.
-Fokus: Differenzierung, einzigartiger Mechanismus, Proof.
-Hooks sollen die Überlegenheit der Lösung demonstrieren.
-Funnel kann schneller zum Angebot führen, braucht aber starken Social Proof.
-Vergleich mit Alternativen und klare USP-Kommunikation.`,
-    4: `Der Kunde ist PRODUCT AWARE – kennt das Produkt, braucht noch Überzeugung.
-Fokus: Einwandbehandlung, Testimonials, Risiko-Umkehr.
-Hooks sollen Trust aufbauen und letzte Zweifel beseitigen.
-Funnel braucht Retargeting, Testimonials und starke Garantien.
-E-Mails fokussieren auf Case Studies und FAQ.`,
-    5: `Der Kunde ist MOST AWARE – steht kurz vor dem Kauf.
-Fokus: Urgency, Scarcity, Deal-Sweetener, direkter CTA.
-Hooks sollen direkt zum Handeln auffordern.
-Funnel braucht minimale Schritte – direkt zum Checkout.
-Bonusse und zeitlich begrenzte Angebote sind entscheidend.`,
+  const levels = {
+    1: "UNAWARE: Problemaufdeckung, emotionale Trigger, Education-Content. Hooks neugierig ohne zu verkaufen. Funnel mit Awareness-Content.",
+    2: "PROBLEM AWARE: Problemverstärkung, Agitation, Lösungsrichtung. Hooks validieren Schmerz. Funnel mit Education-Phase.",
+    3: "SOLUTION AWARE: Differenzierung, einzigartiger Mechanismus, Proof. Hooks zeigen Überlegenheit. Funnel mit Social Proof.",
+    4: "PRODUCT AWARE: Einwandbehandlung, Testimonials, Risiko-Umkehr. Hooks bauen Trust. Funnel mit Retargeting.",
+    5: "MOST AWARE: Urgency, Scarcity, Deal-Sweetener. Hooks fordern zum Handeln auf. Funnel direkt zum Checkout.",
   };
 
-  return `Du bist SCALE ENGINE, ein Elite Direct-Response Marketing Strategist.
-Du kombinierst die besten Strategien von Alex Hormozi, Russell Brunson, Sabri Suby und den erfolgreichsten Direct-Response Marketern der Welt.
-
-Deine Aufgabe: Erstelle eine vollständige, conversion-optimierte Marketing-Analyse.
-
-${awarenessInstructions[awarenessLevel] || awarenessInstructions[3]}
+  return `Du bist SCALE ENGINE, ein Elite Direct-Response Marketing Strategist (Hormozi, Suby, Brunson).
+Awareness: ${levels[awarenessLevel] || levels[3]}
 
 ${MARKETING_KNOWLEDGE}
 
-QUALITÄTSSTANDARDS:
-- Jeder Hook muss sofort Aufmerksamkeit greifen – kein generischer Filler
-- Scripts müssen copy-paste-fertig sein – echte Texte, keine Platzhalter
-- Einwand-Reframes müssen psychologisch fundiert sein
-- Funnel-Steps müssen logisch aufeinander aufbauen
-- Alle Texte auf Deutsch, professionell, conversion-fokussiert
-- Sei spezifisch für das Unternehmen – keine generischen Marketing-Floskeln
-- Denke wie ein Top-Copywriter der €50.000+ für eine Kampagne berechnet
-- Mindestens 8 Hooks, 3 Ad-Scripts, 3 E-Mail Scripts
-
-AUSGABEFORMAT:
-Antworte ausschließlich mit einem einzigen validen JSON-Objekt.
-Keine Markdown-Codeblöcke. Keine Erklärungen davor oder danach.
-Das JSON muss exakt dieser Struktur folgen:
-${JSON_STRUCTURE}`;
+QUALITÄT: Spezifisch für das Unternehmen, keine Floskeln, copy-paste-fertig, Deutsch, conversion-fokussiert.
+Antworte NUR mit validem JSON. Keine Erklärungen.`;
 }
 
 function extractJson(text) {
@@ -93,11 +71,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, awarenessLevel, researchData } = req.body || {};
+  const { prompt, awarenessLevel, researchData, part } = req.body || {};
 
   if (!prompt) {
     return res.status(400).json({ error: "prompt fehlt" });
   }
+
+  const sectionPart = part === "creative" ? "creative" : "analysis";
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const modelId = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
@@ -112,56 +92,45 @@ export default async function handler(req, res) {
     const anthropic = createAnthropic({ apiKey });
 
     const researchContext = buildResearchContext(researchData);
-    const fullPrompt = researchContext ? prompt + researchContext : prompt;
+    const fullPrompt = `${prompt}
+${researchContext ? researchContext : ""}
 
-    // Stream via SSE — keeps connection alive, avoids Vercel idle timeout
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
+${PART_INSTRUCTIONS[sectionPart]}
+JSON-Struktur:
+${STRUCTURES[sectionPart]}`;
 
-    const result = streamText({
+    const result = await generateText({
       model: anthropic(modelId),
       system: buildSystemPrompt(awarenessLevel || 3),
       prompt: fullPrompt,
-      maxTokens: 8000,
+      maxTokens: 4096,
       temperature: 0.3,
     });
 
-    let fullText = "";
-
-    for await (const chunk of result.textStream) {
-      fullText += chunk;
-      // Send progress chunks to keep connection alive
-      res.write(`data: {"p":1}\n\n`);
-    }
-
-    const jsonStr = extractJson(fullText);
+    const jsonStr = extractJson(result.text);
     if (!jsonStr) {
-      res.write(`data: ${JSON.stringify({ error: "Kein gültiges JSON in der Antwort." })}\n\n`);
-      res.end();
-      return;
+      return res.status(502).json({
+        error: `Kein gültiges JSON für Teil "${sectionPart}".`,
+        preview: result.text?.slice(0, 300),
+      });
     }
 
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      res.write(`data: ${JSON.stringify({ error: "JSON konnte nicht geparst werden." })}\n\n`);
-      res.end();
-      return;
+      return res.status(502).json({ error: "JSON konnte nicht geparst werden." });
     }
 
-    // Send final result
-    res.write(`data: ${JSON.stringify({ done: true, result: parsed })}\n\n`);
-    res.end();
+    return res.status(200).json({
+      ok: true,
+      part: sectionPart,
+      result: parsed,
+      meta: { model: modelId, finishReason: result.finishReason, usage: result.usage },
+    });
   } catch (err) {
     const message = err?.message || "Unbekannter Serverfehler";
-    if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
-      res.end();
-    } else {
-      res.status(500).json({ error: message });
-    }
+    const status = message.includes("API key") ? 401 : 500;
+    return res.status(status).json({ error: message });
   }
 }

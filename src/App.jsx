@@ -496,48 +496,28 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         } catch { /* research is optional — continue without */ }
       }
 
-      const res = await fetch("/api/analyse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, awarenessLevel: aw, researchData }),
-      });
+      const callApi = async (part) => {
+        const r = await fetch("/api/analyse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, awarenessLevel: aw, researchData, part }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d?.error || `API Fehler ${r.status}`);
+        if (!d?.result) throw new Error(`Teil "${part}" lieferte kein Ergebnis.`);
+        return d.result;
+      };
 
-      if (!res.ok) {
-        let msg = `API Fehler ${res.status}`;
-        try { const d = await res.json(); msg = d?.error || msg; } catch {}
-        throw new Error(msg);
-      }
+      // Run both parts in parallel — each completes within 60s
+      const [analysis, creative] = await Promise.all([
+        callApi("analysis"),
+        callApi("creative"),
+      ]);
 
-      // Read SSE stream
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let finalResult = null;
+      // Merge both parts into one result
+      const merged = { ...analysis, ...creative };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // Process complete SSE messages
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const payload = JSON.parse(line.slice(6));
-            if (payload.error) throw new Error(payload.error);
-            if (payload.done && payload.result) finalResult = payload.result;
-          } catch (e) {
-            if (e.message && !e.message.includes("JSON")) throw e;
-          }
-        }
-      }
-
-      if (!finalResult) throw new Error("Keine gültige Analyse zurückbekommen.");
-
-      setResult(finalResult);
+      setResult(merged);
       setTab("audit");
       setLs(STEPS.length - 1);
     } catch (e) {
