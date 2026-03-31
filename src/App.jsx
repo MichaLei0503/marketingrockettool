@@ -510,14 +510,15 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         return d.result;
       };
 
-      // Run both parts in parallel — each completes within 60s
-      const [analysis, creative] = await Promise.all([
-        callApi("analysis"),
-        callApi("creative"),
+      // Run all 3 parts in parallel — each completes within 45s
+      const [p1, p2, p3] = await Promise.all([
+        callApi("part1"),
+        callApi("part2"),
+        callApi("part3"),
       ]);
 
-      // Merge both parts into one result
-      const merged = { ...analysis, ...creative };
+      // Merge all parts into one result
+      const merged = { ...p1, ...p2, ...p3 };
 
       setResult(merged);
       setTab("audit");
