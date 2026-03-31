@@ -502,7 +502,9 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, awarenessLevel: aw, researchData, part }),
         });
-        const d = await r.json();
+        if (r.status === 504) throw new Error("Analyse-Timeout. Bitte versuche es nochmal.");
+        let d;
+        try { d = await r.json(); } catch { throw new Error(`Server-Fehler (${r.status}). Bitte versuche es nochmal.`); }
         if (!r.ok) throw new Error(d?.error || `API Fehler ${r.status}`);
         if (!d?.result) throw new Error(`Teil "${part}" lieferte kein Ergebnis.`);
         return d.result;
