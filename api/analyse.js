@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       model: anthropic(modelId),
       system: buildSystemPrompt(awarenessLevel || 3),
       prompt: fullPrompt,
-      maxTokens: 10000,
+      maxTokens: 7000,
       temperature: 0.3,
     });
 

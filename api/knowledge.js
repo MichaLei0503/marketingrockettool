@@ -195,13 +195,13 @@ export function buildResearchContext(researchData) {
     if (s.title) parts.push(`Seitentitel: ${s.title}`);
     if (s.description) parts.push(`Meta-Beschreibung: ${s.description}`);
     if (s.headings?.length) parts.push(`Überschriften: ${s.headings.join(" | ")}`);
-    if (s.content) parts.push(`Seiteninhalt (Auszug):\n${s.content}`);
+    if (s.content) parts.push(`Seiteninhalt (Auszug):\n${s.content.slice(0, 1500)}`);
     parts.push("Nutze diese echten Website-Daten um Stärken und Schwächen im aktuellen Marketing zu identifizieren.");
   }
 
   if (researchData.searchResults?.length) {
     parts.push("\n--- MARKT-RECHERCHE (aktuelle Suchergebnisse) ---");
-    for (const r of researchData.searchResults) {
+    for (const r of researchData.searchResults.slice(0, 5)) {
       parts.push(`• ${r.title}: ${r.snippet}`);
     }
     parts.push("Nutze diese aktuellen Marktdaten um Trends und Wettbewerber-Strategien einzubeziehen.");

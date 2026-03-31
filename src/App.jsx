@@ -502,7 +502,16 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         body: JSON.stringify({ prompt, awarenessLevel: aw, researchData }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(
+          res.status === 504
+            ? "Analyse-Timeout: Der Server hat zu lange gebraucht. Bitte versuche es nochmal."
+            : `API Fehler ${res.status} – ungültige Antwort vom Server.`
+        );
+      }
 
       if (!res.ok) throw new Error(data?.error || `API Fehler ${res.status}`);
       if (!data?.result || typeof data.result !== "object") {
