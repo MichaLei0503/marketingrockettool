@@ -38,13 +38,40 @@ const CORE_KNOWLEDGE = `FRAMEWORKS:
 - Scripts: Problem→Agitation→Disqualifikation→Authority→CTA.
 - Funnel: Nie Traffic auf Homepage. Dedizierte Landingpages. Break-Even 30 Tage.`;
 
+/**
+ * Escape literal control characters inside JSON string values.
+ * Claude often puts real newlines/tabs in strings instead of \n \t.
+ */
+function sanitizeJsonStrings(text) {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) { escaped = false; result += ch; continue; }
+      if (ch === "\\") { escaped = true; result += ch; continue; }
+      if (ch === '"') { inString = false; result += ch; continue; }
+      // Escape literal control characters inside strings
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+      result += ch;
+    } else {
+      if (ch === '"') inString = true;
+      result += ch;
+    }
+  }
+  return result;
+}
+
 function extractJson(text) {
-  // Find the first '{' — don't strip backticks globally (corrupts JSON values)
+  // Find the first '{' in the raw text
   const start = text.indexOf("{");
   if (start === -1) return null;
 
-  // Try 1: Find matching closing brace with proper string tracking
-  let depth = 0, inString = false, escaped = false;
+  // Track brace depth to find matching closing brace
+  let depth = 0, inString = false, escaped = false, end = -1;
   for (let i = start; i < text.length; i++) {
     const ch = text[i];
     if (inString) {
@@ -57,22 +84,30 @@ function extractJson(text) {
     if (ch === "{") depth++;
     if (ch === "}") {
       depth--;
-      if (depth === 0) {
-        const candidate = text.slice(start, i + 1);
-        try { JSON.parse(candidate); return candidate; } catch {
-          // Matched braces but invalid JSON — continue to repair
-          break;
-        }
-      }
+      if (depth === 0) { end = i; break; }
     }
   }
 
-  // Try 2: JSON might be truncated — repair by closing open structures
-  let partial = text.slice(start);
-  // Strip trailing markdown closing fence if present
-  partial = partial.replace(/\s*```\s*$/, "");
+  // Extract the candidate (matched braces or everything from start)
+  let candidate = end !== -1 ? text.slice(start, end + 1) : text.slice(start);
 
-  // If inside an unclosed string, close it
+  // Strip trailing markdown fence if present (for truncated case)
+  candidate = candidate.replace(/\s*```\s*$/, "");
+
+  // Try 1: Direct parse
+  try { return JSON.stringify(JSON.parse(candidate)); } catch {}
+
+  // Try 2: Sanitize control characters in strings (Claude puts literal newlines)
+  try {
+    const sanitized = sanitizeJsonStrings(candidate);
+    JSON.parse(sanitized);
+    return sanitized;
+  } catch {}
+
+  // Try 3: Repair truncated JSON
+  let partial = sanitizeJsonStrings(candidate);
+
+  // If still inside an unclosed string, close it
   let inStr = false, esc = false;
   for (let i = 0; i < partial.length; i++) {
     const c = partial[i];
@@ -99,7 +134,11 @@ function extractJson(text) {
   }
   while (brackets > 0) { partial += "]"; brackets--; }
   while (braces > 0) { partial += "}"; braces--; }
-  try { JSON.parse(partial); return partial; } catch { return null; }
+
+  try { JSON.parse(partial); return partial; } catch (e) {
+    console.error("JSON repair failed:", e.message, "partial (last 200):", partial.slice(-200));
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -119,13 +158,14 @@ export default async function handler(req, res) {
 Awareness: ${AWARENESS[awarenessLevel] || AWARENESS[3]}
 ${CORE_KNOWLEDGE}
 Alle Texte Deutsch, conversion-fokussiert, spezifisch fürs Unternehmen, keine Floskeln.
-WICHTIG: Antworte NUR mit reinem JSON. KEIN Markdown, KEIN \`\`\`json.`;
+WICHTIG: Antworte NUR mit validem JSON. Kein Markdown, keine Code-Blöcke. Nutze \\n für Zeilenumbrüche in Strings.`;
 
   const researchCtx = buildResearchContext(researchData);
   const userPrompt = `${prompt}${researchCtx ? "\n" + researchCtx : ""}
 
 ${PART_TASKS[sectionPart]}
-JSON:
+Antworte mit reinem JSON (kein \`\`\`json, kein Markdown). Nutze \\n statt echte Zeilenumbrüche in String-Werten.
+JSON-Struktur:
 ${STRUCTURES[sectionPart]}`;
 
   try {
@@ -160,7 +200,9 @@ ${STRUCTURES[sectionPart]}`;
 
     const jsonStr = extractJson(text);
     if (!jsonStr) {
-      console.error("extractJson failed:", text.slice(0, 500));
+      console.error("extractJson failed. First 300 chars:", text.slice(0, 300));
+      console.error("Last 200 chars:", text.slice(-200));
+      console.error("Text length:", text.length, "First char codes:", [...text.slice(0, 20)].map(c => c.charCodeAt(0)));
       return res.status(502).json({ error: "JSON-Extraktion fehlgeschlagen." });
     }
 

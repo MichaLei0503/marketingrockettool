@@ -496,21 +496,33 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         } catch { /* research is optional — continue without */ }
       }
 
-      const callApi = async (part) => {
+      const callApi = async (part, attempt = 1) => {
         const r = await fetch("/api/analyse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, awarenessLevel: aw, researchData, part }),
         });
-        if (r.status === 504) throw new Error("Analyse-Timeout. Bitte versuche es nochmal.");
+        if (r.status === 504) {
+          if (attempt < 2) return callApi(part, attempt + 1);
+          throw new Error("Analyse-Timeout. Bitte versuche es nochmal.");
+        }
         let d;
-        try { d = await r.json(); } catch { throw new Error(`Server-Fehler (${r.status}). Bitte versuche es nochmal.`); }
-        if (!r.ok) throw new Error(d?.error || `API Fehler ${r.status}`);
-        if (!d?.result) throw new Error(`Teil "${part}" lieferte kein Ergebnis.`);
+        try { d = await r.json(); } catch {
+          if (attempt < 2) return callApi(part, attempt + 1);
+          throw new Error(`Server-Fehler (${r.status}). Bitte versuche es nochmal.`);
+        }
+        if (!r.ok) {
+          if (attempt < 2) return callApi(part, attempt + 1);
+          throw new Error(d?.error || `API Fehler ${r.status}`);
+        }
+        if (!d?.result) {
+          if (attempt < 2) return callApi(part, attempt + 1);
+          throw new Error(`Teil "${part}" lieferte kein Ergebnis.`);
+        }
         return d.result;
       };
 
-      // Run all 3 parts in parallel — each completes within 45s
+      // Run all 3 parts in parallel — each auto-retries once on failure
       const [p1, p2, p3] = await Promise.all([
         callApi("part1"),
         callApi("part2"),
