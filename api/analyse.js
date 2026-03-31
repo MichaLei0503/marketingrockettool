@@ -1,6 +1,6 @@
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { buildResearchContext } from "./knowledge.js";
+import { MARKETING_KNOWLEDGE, buildResearchContext } from "./knowledge.js";
 
 const JSON_STRUCTURE = `{
   "audit": { "score": 0, "diagnosis": "", "wins": [], "leaks": [], "fixes": [{"issue":"","fix":"","impact":"hoch|mittel|niedrig"}] },
@@ -42,37 +42,36 @@ Bonusse und zeitlich begrenzte Angebote sind entscheidend.`,
   };
 
   return `Du bist SCALE ENGINE, ein Elite Direct-Response Marketing Strategist.
-Du kombinierst Strategien von Alex Hormozi, Sabri Suby, Russell Brunson.
+Du kombinierst die besten Strategien von Alex Hormozi, Russell Brunson, Sabri Suby und den erfolgreichsten Direct-Response Marketern der Welt.
+
+Deine Aufgabe: Erstelle eine vollständige, conversion-optimierte Marketing-Analyse.
 
 ${awarenessInstructions[awarenessLevel] || awarenessInstructions[3]}
 
-KERN-FRAMEWORKS (kurzgefasst):
-- GODFATHER-ANGEBOT: So gut dass Nein sagen dumm waere. Spezifisch+einzigartig+vorhersehbar. Starke Garantie (Bauchschmerz-Test). Risiko-Umkehr.
-- TRIPLE DIAMOND: D1=Schmerz vertiefen, D2=Konkurrenz disqualifizieren (Limiting Beliefs brechen), D3=Einzigartiger Mechanismus als Loesung.
-- HALO-STRATEGIE: 3% kaufbereit, 17% informieren sich, 20% problembewusst, 60% unbewusst. Blue Ocean der 97%.
-- SPECTACLE STACKING: Produkt muss seine Funktion VISUELL erklaeren. Show dont tell.
-- Ads die wie Content aussehen (Hormozi-Prinzip). UGC > polierte Werbung. Thumb-Stop in 0.5 Sek.
-- 33%-Regel: Bis 33% des LTV fuer Akquise. Wer am meisten pro Kunde ausgeben kann gewinnt.
-- CLAIM: "Ich helfe [Zielgruppe], [Ergebnis] in [Zeitraum], ohne [Schmerzpunkt], oder [Konsequenz]."
+${MARKETING_KNOWLEDGE}
 
-REGELN:
-- Alle Texte auf Deutsch, conversion-fokussiert, spezifisch fuer das Unternehmen
-- Hooks: mindestens 8, Aufmerksamkeit in 0.5 Sek
-- Scripts: mindestens 3 Ads + 3 Emails, copy-paste-fertig
-- Sei konkret – keine generischen Floskeln
+QUALITÄTSSTANDARDS:
+- Jeder Hook muss sofort Aufmerksamkeit greifen – kein generischer Filler
+- Scripts müssen copy-paste-fertig sein – echte Texte, keine Platzhalter
+- Einwand-Reframes müssen psychologisch fundiert sein
+- Funnel-Steps müssen logisch aufeinander aufbauen
+- Alle Texte auf Deutsch, professionell, conversion-fokussiert
+- Sei spezifisch für das Unternehmen – keine generischen Marketing-Floskeln
+- Denke wie ein Top-Copywriter der €50.000+ für eine Kampagne berechnet
+- Mindestens 8 Hooks, 3 Ad-Scripts, 3 E-Mail Scripts
 
 AUSGABEFORMAT:
-Antworte NUR mit validem JSON. Keine Erklaerungen. Exakt diese Struktur:
+Antworte ausschließlich mit einem einzigen validen JSON-Objekt.
+Keine Markdown-Codeblöcke. Keine Erklärungen davor oder danach.
+Das JSON muss exakt dieser Struktur folgen:
 ${JSON_STRUCTURE}`;
 }
 
 function extractJson(text) {
   const cleaned = text.trim()
     .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
-
   const start = cleaned.indexOf("{");
   if (start === -1) return null;
-
   let depth = 0, inString = false, escaped = false;
   for (let i = start; i < cleaned.length; i++) {
     const ch = cleaned[i];
@@ -115,44 +114,54 @@ export default async function handler(req, res) {
     const researchContext = buildResearchContext(researchData);
     const fullPrompt = researchContext ? prompt + researchContext : prompt;
 
-    const result = await generateText({
+    // Stream via SSE — keeps connection alive, avoids Vercel idle timeout
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const result = streamText({
       model: anthropic(modelId),
       system: buildSystemPrompt(awarenessLevel || 3),
       prompt: fullPrompt,
-      maxTokens: 5000,
+      maxTokens: 8000,
       temperature: 0.3,
     });
 
-    const jsonStr = extractJson(result.text);
+    let fullText = "";
+
+    for await (const chunk of result.textStream) {
+      fullText += chunk;
+      // Send progress chunks to keep connection alive
+      res.write(`data: {"p":1}\n\n`);
+    }
+
+    const jsonStr = extractJson(fullText);
     if (!jsonStr) {
-      return res.status(502).json({
-        error: "Kein gültiges JSON in der Antwort gefunden.",
-        preview: result.text?.slice(0, 500),
-      });
+      res.write(`data: ${JSON.stringify({ error: "Kein gültiges JSON in der Antwort." })}\n\n`);
+      res.end();
+      return;
     }
 
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      return res.status(502).json({
-        error: "JSON konnte nicht geparst werden.",
-        preview: jsonStr.slice(0, 500),
-      });
+      res.write(`data: ${JSON.stringify({ error: "JSON konnte nicht geparst werden." })}\n\n`);
+      res.end();
+      return;
     }
 
-    return res.status(200).json({
-      ok: true,
-      result: parsed,
-      meta: {
-        model: modelId,
-        finishReason: result.finishReason,
-        usage: result.usage,
-      },
-    });
+    // Send final result
+    res.write(`data: ${JSON.stringify({ done: true, result: parsed })}\n\n`);
+    res.end();
   } catch (err) {
     const message = err?.message || "Unbekannter Serverfehler";
-    const status = message.includes("API key") ? 401 : 500;
-    return res.status(status).json({ error: message });
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+      res.end();
+    } else {
+      res.status(500).json({ error: message });
+    }
   }
 }

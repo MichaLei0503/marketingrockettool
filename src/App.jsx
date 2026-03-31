@@ -502,23 +502,42 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         body: JSON.stringify({ prompt, awarenessLevel: aw, researchData }),
       });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error(
-          res.status === 504
-            ? "Analyse-Timeout: Der Server hat zu lange gebraucht. Bitte versuche es nochmal."
-            : `API Fehler ${res.status} – ungültige Antwort vom Server.`
-        );
+      if (!res.ok) {
+        let msg = `API Fehler ${res.status}`;
+        try { const d = await res.json(); msg = d?.error || msg; } catch {}
+        throw new Error(msg);
       }
 
-      if (!res.ok) throw new Error(data?.error || `API Fehler ${res.status}`);
-      if (!data?.result || typeof data.result !== "object") {
-        throw new Error("Keine gültige Analyse zurückbekommen.");
+      // Read SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalResult = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE messages
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const payload = JSON.parse(line.slice(6));
+            if (payload.error) throw new Error(payload.error);
+            if (payload.done && payload.result) finalResult = payload.result;
+          } catch (e) {
+            if (e.message && !e.message.includes("JSON")) throw e;
+          }
+        }
       }
 
-      setResult(data.result);
+      if (!finalResult) throw new Error("Keine gültige Analyse zurückbekommen.");
+
+      setResult(finalResult);
       setTab("audit");
       setLs(STEPS.length - 1);
     } catch (e) {
