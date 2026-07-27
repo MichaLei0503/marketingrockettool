@@ -285,15 +285,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { url, industry, product, targetAudience, painPoints } = req.body || {};
+  const { url, industry, product, targetAudience, painPoints, deepResearch } = req.body || {};
 
-  // Run all research in parallel — each source is independent
+  // Fast path: only website scan when deep research is off
+  // Deep path: all sources (Reddit + YouTube + Serper + Meta Ad Library)
   const [siteData, searchResults, forumData, youtubeComments, adInsights] = await Promise.all([
     scrapeWebsite(url),
-    searchWeb(industry, product),
-    forageReddit(industry, product, targetAudience, painPoints),
-    searchYouTubeComments(industry, product, painPoints),
-    searchMetaAdLibrary(industry, product),
+    deepResearch ? searchWeb(industry, product) : Promise.resolve([]),
+    deepResearch ? forageReddit(industry, product, targetAudience, painPoints) : Promise.resolve([]),
+    deepResearch ? searchYouTubeComments(industry, product, painPoints) : Promise.resolve([]),
+    deepResearch ? searchMetaAdLibrary(industry, product) : Promise.resolve([]),
   ]);
 
   const hasData = siteData || searchResults.length > 0 || forumData.length > 0 || youtubeComments.length > 0 || adInsights.length > 0;

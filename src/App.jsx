@@ -448,12 +448,279 @@ function SpecTab({ data }) {
   );
 }
 
+function CreativesTab({ data }) {
+  if (!data) return null;
+  return (
+    <div className="tab-content">
+      {data.angles?.length > 0 && (
+        <>
+          <h3 className="section-title gold-accent">Winning Angles</h3>
+          <div className="stack-md">
+            {data.angles.map((a, i) => (
+              <div key={i} className="script-card">
+                <div className="script-head">
+                  <span className="chip chip-gold">{a.name}</span>
+                  {a.awareness_level && <span className="chip chip-sm chip-outline">{a.awareness_level}</span>}
+                </div>
+                <div className="script-section">
+                  <strong>Big Idea:</strong>
+                  <p>{a.big_idea}</p>
+                </div>
+                <div className="script-section">
+                  <strong>Hook:</strong>
+                  <p className="hook-text">"{a.hook}"</p>
+                </div>
+                <div className="script-section">
+                  <strong>Body:</strong>
+                  <p className="script-body">{a.body}</p>
+                </div>
+                {a.proof && (
+                  <div className="script-section">
+                    <strong>Proof:</strong>
+                    <p>{a.proof}</p>
+                  </div>
+                )}
+                <div className="script-section">
+                  <strong>CTA:</strong>
+                  <p className="cta-text">{a.cta}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.ad_concepts?.length > 0 && (
+        <>
+          <h3 className="section-title">Ad-Konzepte</h3>
+          <div className="stack-md">
+            {data.ad_concepts.map((c, i) => (
+              <div key={i} className="script-card">
+                <div className="script-head">
+                  <span className="chip">{c.type?.replace(/_/g, " ")}</span>
+                  <span className="chip chip-outline">{c.format}</span>
+                </div>
+                <div className="script-section">
+                  <strong>Script:</strong>
+                  <p className="script-body">{c.script}</p>
+                </div>
+                {c.visual_direction && (
+                  <div className="script-section">
+                    <strong>Visual:</strong>
+                    <p>{c.visual_direction}</p>
+                  </div>
+                )}
+                {c.ideal_creator && (
+                  <div className="script-section muted">
+                    Ideal Creator: {c.ideal_creator}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.ugc_briefings?.length > 0 && (
+        <>
+          <h3 className="section-title">UGC-Briefings (ready-to-shoot)</h3>
+          <div className="stack-md">
+            {data.ugc_briefings.map((b, i) => (
+              <div key={i} className="script-card">
+                <div className="script-head">
+                  <span className="chip chip-gold">Szene {i + 1}</span>
+                  {b.duration && <span className="chip chip-sm chip-outline">{b.duration}</span>}
+                </div>
+                <div className="script-section">
+                  <strong>Szenario:</strong>
+                  <p>{b.scenario}</p>
+                </div>
+                <div className="script-section">
+                  <strong>Opening Line:</strong>
+                  <p className="hook-text">"{b.opening_line}"</p>
+                </div>
+                {b.key_points?.length > 0 && (
+                  <div className="script-section">
+                    <strong>Key Points:</strong>
+                    <ul>
+                      {b.key_points.map((k, j) => <li key={j}>{k}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <div className="script-section">
+                  <strong>CTA:</strong>
+                  <p className="cta-text">{b.cta}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.iteration_plan && (
+        <>
+          <h3 className="section-title">Iterations-Plan (Andromeda)</h3>
+          <div className="stack-sm">
+            {data.iteration_plan.audience_variations?.length > 0 && (
+              <div className="kv-card">
+                <div className="kv-key">Audience-Varianten</div>
+                <ul>
+                  {data.iteration_plan.audience_variations.map((v, i) => <li key={i}>{v}</li>)}
+                </ul>
+              </div>
+            )}
+            {data.iteration_plan.angle_variations?.length > 0 && (
+              <div className="kv-card">
+                <div className="kv-key">Angle-Varianten</div>
+                <ul>
+                  {data.iteration_plan.angle_variations.map((v, i) => <li key={i}>{v}</li>)}
+                </ul>
+              </div>
+            )}
+            {data.iteration_plan.format_variations?.length > 0 && (
+              <div className="kv-card">
+                <div className="kv-key">Format-Varianten</div>
+                <ul>
+                  {data.iteration_plan.format_variations.map((v, i) => <li key={i}>{v}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MetaCampaignTab({ data }) {
+  if (!data) return null;
+  return (
+    <div className="tab-content">
+      {data.architecture && (
+        <div className="kv-card" style={{ borderLeft: "3px solid var(--gold)" }}>
+          <div className="kv-key">Kampagnen-Architektur</div>
+          <div className="kv-value">{data.architecture}</div>
+        </div>
+      )}
+
+      {data.testing_campaign && (
+        <>
+          <h3 className="section-title">1. Testing Campaign (ABO)</h3>
+          <div className="script-card">
+            <div className="kv"><span className="kv-k">Name</span><span className="kv-v">{data.testing_campaign.name}</span></div>
+            <div className="kv"><span className="kv-k">Budget-Formel</span><span className="kv-v">{data.testing_campaign.budget_formula}</span></div>
+            <div className="kv"><span className="kv-k">Budget-Beispiel</span><span className="kv-v">{data.testing_campaign.budget_example}</span></div>
+            <div className="kv"><span className="kv-k">Creative Batches</span><span className="kv-v">{data.testing_campaign.creative_batches}</span></div>
+            <div className="kv"><span className="kv-k">Optimization</span><span className="kv-v">{data.testing_campaign.optimization}</span></div>
+            <div className="kv"><span className="kv-k">Exclusions</span><span className="kv-v">{data.testing_campaign.exclusions}</span></div>
+            <div className="kv"><span className="kv-k">Attribution</span><span className="kv-v">{data.testing_campaign.attribution}</span></div>
+          </div>
+        </>
+      )}
+
+      {data.scaling_campaign && (
+        <>
+          <h3 className="section-title">2. Scaling CBO</h3>
+          <div className="script-card">
+            <div className="kv"><span className="kv-k">Name</span><span className="kv-v">{data.scaling_campaign.name}</span></div>
+            <div className="kv"><span className="kv-k">Budget</span><span className="kv-v">{data.scaling_campaign.budget}</span></div>
+            <div className="kv"><span className="kv-k">Strategie</span><span className="kv-v">{data.scaling_campaign.strategy}</span></div>
+            <div className="kv"><span className="kv-k">Wann Promote</span><span className="kv-v">{data.scaling_campaign.when_to_promote}</span></div>
+          </div>
+        </>
+      )}
+
+      {data.advantage_plus && (
+        <>
+          <h3 className="section-title">3. Advantage+ Sales (ASC+)</h3>
+          <div className="script-card">
+            <div className="kv"><span className="kv-k">Wann bereit</span><span className="kv-v">{data.advantage_plus.when_ready}</span></div>
+            <div className="kv"><span className="kv-k">Creative-Mix</span><span className="kv-v">{data.advantage_plus.creative_mix}</span></div>
+            <div className="kv"><span className="kv-k">Budget-Anteil</span><span className="kv-v">{data.advantage_plus.budget_share}</span></div>
+          </div>
+        </>
+      )}
+
+      {data.portfolio_split && (
+        <>
+          <h3 className="section-title">Portfolio-Split</h3>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-metric">Advantage+</div>
+              <div className="kpi-target">{data.portfolio_split.advantage_plus}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-metric">Retargeting</div>
+              <div className="kpi-target">{data.portfolio_split.retargeting}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-metric">Testing</div>
+              <div className="kpi-target">{data.portfolio_split.testing}</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {data.scaling_rules && (
+        <>
+          <h3 className="section-title gold-accent">Scaling Rules</h3>
+          <div className="script-card">
+            <div className="kv"><span className="kv-k">20% Rule</span><span className="kv-v">{data.scaling_rules.rule_20_percent}</span></div>
+            <div className="kv"><span className="kv-k">72h Rule</span><span className="kv-v">{data.scaling_rules.72h_rule}</span></div>
+            {data.scaling_rules.fatigue_signals?.length > 0 && (
+              <div className="script-section">
+                <strong>Fatigue-Signale:</strong>
+                <ul>
+                  {data.scaling_rules.fatigue_signals.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {data.budget_recommendations && (
+        <>
+          <h3 className="section-title">Budget-Empfehlungen</h3>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-metric">Start täglich</div>
+              <div className="kpi-target">{data.budget_recommendations.start_daily}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-metric">Monat 1 Ziel</div>
+              <div className="kpi-target">{data.budget_recommendations.month_1_target}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-metric">Break-Even ROAS</div>
+              <div className="kpi-target">{data.budget_recommendations.break_even_roas}</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {data.naming_convention && (
+        <>
+          <h3 className="section-title">Naming Convention</h3>
+          <div className="script-card">
+            <div className="kv"><span className="kv-k">Campaign</span><span className="kv-v"><code>{data.naming_convention.campaign}</code></span></div>
+            <div className="kv"><span className="kv-k">Adset</span><span className="kv-v"><code>{data.naming_convention.adset}</code></span></div>
+            <div className="kv"><span className="kv-k">Ad</span><span className="kv-v"><code>{data.naming_convention.ad}</code></span></div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const TAB_RENDERERS = {
   summary: SummaryTab,
   audit: AuditTab,
   offer: OfferTab,
   pain: PainTab,
   hooks: HooksTab,
+  creatives: CreativesTab,
+  meta_campaign: MetaCampaignTab,
   scripts: ScriptsTab,
   funnel: FunnelTab,
   spec: SpecTab,
@@ -470,6 +737,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [ls, setLs] = useState(-1);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [deepResearch, setDeepResearch] = useState(false);
   const timer = useRef(null);
   const hydrated = useRef(false);
 
@@ -539,9 +807,10 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
 `;
 
     try {
-      // Optional: research data (website scan + web search)
+      // Research data — depth depends on deepResearch flag
       let researchData = null;
-      if (form.url?.trim() || form.br?.trim()) {
+      const shouldResearch = deepResearch || form.url?.trim();
+      if (shouldResearch) {
         try {
           const rr = await fetch("/api/research", {
             method: "POST",
@@ -552,6 +821,7 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
               product: form.pr?.trim(),
               targetAudience: form.zg?.trim(),
               painPoints: form.sm?.trim(),
+              deepResearch,
             }),
           });
           const rd = await rr.json();
@@ -585,15 +855,16 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
         return d.result;
       };
 
-      // Run all 3 parts in parallel — each auto-retries once on failure
-      const [p1, p2, p3] = await Promise.all([
+      // Run all 4 parts in parallel — each auto-retries once on failure
+      const [p1, p2, p3, p4] = await Promise.all([
         callApi("part1"),
         callApi("part2"),
         callApi("part3"),
+        callApi("part4"),
       ]);
 
       // Merge all parts into one result
-      const merged = { ...p1, ...p2, ...p3 };
+      const merged = { ...p1, ...p2, ...p3, ...p4 };
 
       setResult(merged);
       setTab("summary");
@@ -604,7 +875,7 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
       if (timer.current) clearInterval(timer.current);
       setLoading(false);
     }
-  }, [form, currentAwareness, isValid, aw]);
+  }, [form, currentAwareness, isValid, aw, deepResearch]);
 
   const resetAll = () => {
     if (!confirm("Wirklich alle Eingaben und Ergebnisse zurücksetzen?")) return;
@@ -617,7 +888,12 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
   };
 
   const TabRenderer = TAB_RENDERERS[tab];
-  const tabData = tab === "hooks" ? result?.hooks : tab === "summary" ? result?.summary : result?.[tab];
+  const tabData =
+    tab === "hooks" ? result?.hooks :
+    tab === "summary" ? result?.summary :
+    tab === "creatives" ? result?.creatives :
+    tab === "meta_campaign" ? result?.meta_campaign :
+    result?.[tab];
 
   return (
     <div className="app-shell">
@@ -627,7 +903,7 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
             <div className="eyebrow">Marketing AI Tool</div>
             <h1>SCALE ENGINE</h1>
             <p className="hero-text">
-              Full-Funnel Analyse: Audit, Offer, Pain, Hooks, Scripts, Funnel & Spec.
+              Full-Stack Marketing-Blueprint: Meta-Kampagne, Creatives & Angles, Offer-Stack, Funnel & Scripts.
             </p>
           </div>
           <div className="hero-actions">
@@ -706,6 +982,23 @@ Passe alle Inhalte spezifisch auf dieses Business an – keine generischen Flosk
               </div>
               <input type="range" min="1" max="5" step="1" value={aw} onChange={(e) => setAw(Number(e.target.value))} />
               <div className="awareness-desc">{currentAwareness.desc}</div>
+            </div>
+
+            <div className="awareness-box" style={{ marginTop: 12 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={deepResearch}
+                  onChange={(e) => setDeepResearch(e.target.checked)}
+                  style={{ width: 18, height: 18, cursor: "pointer" }}
+                />
+                <div>
+                  <div><strong>Deep Research aktivieren</strong></div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                    Reddit-Foren + YouTube-Kommentare + Web-Suche + Wettbewerber-Ads (+30-60s Analyse-Zeit)
+                  </div>
+                </div>
+              </label>
             </div>
 
             <div className="action-row">

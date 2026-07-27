@@ -1,4 +1,4 @@
-export const STORAGE_KEY = "scale_engine_state_v2";
+export const STORAGE_KEY = "scale_engine_state_v3";
 
 export const TABS = [
   { id: "summary", label: "Summary", icon: "📋" },
@@ -6,6 +6,8 @@ export const TABS = [
   { id: "offer", label: "Offer", icon: "🎯" },
   { id: "pain", label: "Pain", icon: "💔" },
   { id: "hooks", label: "Hooks", icon: "🪝" },
+  { id: "creatives", label: "Creatives", icon: "🎬" },
+  { id: "meta_campaign", label: "Meta Kampagne", icon: "📢" },
   { id: "scripts", label: "Scripts", icon: "📝" },
   { id: "funnel", label: "Funnel", icon: "🔄" },
   { id: "spec", label: "Spec", icon: "🧬" },
@@ -13,10 +15,11 @@ export const TABS = [
 
 export const STEPS = [
   "Foren & Communities durchsuchen",
-  "Zielgruppe analysieren",
-  "Schmerzpunkte identifizieren",
-  "Strategie generieren",
-  "Zusammenfassung erstellen",
+  "Zielgruppe & Awareness analysieren",
+  "Offer & Unique Mechanism",
+  "Creatives & Angles entwickeln",
+  "Meta-Kampagne strukturieren",
+  "Scripts & Funnel finalisieren",
 ];
 
 export const AWARENESS = [

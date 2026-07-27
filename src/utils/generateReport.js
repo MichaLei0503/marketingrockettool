@@ -261,6 +261,178 @@ function renderSpec(sp) {
     </section>`;
 }
 
+function renderCreatives(c) {
+  if (!c) return "";
+  const parts = [`<section class="section"><h2 class="section-title">Creatives &amp; Angles</h2>`];
+
+  if (c.angles?.length) {
+    parts.push(`<h3>Winning Angles</h3>`);
+    c.angles.forEach((a, i) => {
+      parts.push(`
+        <div class="script-card">
+          <div class="script-head">
+            <span class="badge badge-gold">${esc(a.name)}</span>
+            ${a.awareness_level ? `<span class="badge badge-outline">${esc(a.awareness_level)}</span>` : ""}
+          </div>
+          <div class="script-section"><strong>Big Idea:</strong> ${esc(a.big_idea)}</div>
+          <div class="script-section"><strong>Hook:</strong> <em>"${esc(a.hook)}"</em></div>
+          <div class="script-section script-body"><strong>Body:</strong><br>${esc(a.body)}</div>
+          ${a.proof ? `<div class="script-section"><strong>Proof:</strong> ${esc(a.proof)}</div>` : ""}
+          <div class="script-section cta-line"><strong>CTA:</strong> ${esc(a.cta)}</div>
+        </div>`);
+    });
+  }
+
+  if (c.ad_concepts?.length) {
+    parts.push(`<h3>Ad-Konzepte</h3>`);
+    c.ad_concepts.forEach(concept => {
+      parts.push(`
+        <div class="script-card">
+          <div class="script-head">
+            <span class="badge badge-blue">${esc(concept.type?.replace(/_/g, " "))}</span>
+            <span class="badge badge-outline">${esc(concept.format)}</span>
+          </div>
+          <div class="script-section script-body"><strong>Script:</strong><br>${esc(concept.script)}</div>
+          ${concept.visual_direction ? `<div class="script-section"><strong>Visual:</strong> ${esc(concept.visual_direction)}</div>` : ""}
+          ${concept.ideal_creator ? `<div class="script-section muted"><strong>Ideal Creator:</strong> ${esc(concept.ideal_creator)}</div>` : ""}
+        </div>`);
+    });
+  }
+
+  if (c.ugc_briefings?.length) {
+    parts.push(`<h3>UGC-Briefings (ready-to-shoot)</h3>`);
+    c.ugc_briefings.forEach((b, i) => {
+      parts.push(`
+        <div class="script-card">
+          <div class="script-head">
+            <span class="badge badge-gold">Szene ${i + 1}</span>
+            ${b.duration ? `<span class="badge badge-outline">${esc(b.duration)}</span>` : ""}
+          </div>
+          <div class="script-section"><strong>Szenario:</strong> ${esc(b.scenario)}</div>
+          <div class="script-section"><strong>Opening:</strong> <em>"${esc(b.opening_line)}"</em></div>
+          ${b.key_points?.length ? `<div class="script-section"><strong>Key Points:</strong><ul>${b.key_points.map(k => `<li>${esc(k)}</li>`).join("")}</ul></div>` : ""}
+          <div class="script-section cta-line"><strong>CTA:</strong> ${esc(b.cta)}</div>
+        </div>`);
+    });
+  }
+
+  if (c.iteration_plan) {
+    parts.push(`<h3>Iterations-Plan (Andromeda)</h3>`);
+    if (c.iteration_plan.audience_variations?.length) {
+      parts.push(`<div class="kv"><span class="kv-k">Audience</span><span class="kv-v">${c.iteration_plan.audience_variations.map(esc).join(" • ")}</span></div>`);
+    }
+    if (c.iteration_plan.angle_variations?.length) {
+      parts.push(`<div class="kv"><span class="kv-k">Angle</span><span class="kv-v">${c.iteration_plan.angle_variations.map(esc).join(" • ")}</span></div>`);
+    }
+    if (c.iteration_plan.format_variations?.length) {
+      parts.push(`<div class="kv"><span class="kv-k">Format</span><span class="kv-v">${c.iteration_plan.format_variations.map(esc).join(" • ")}</span></div>`);
+    }
+  }
+
+  parts.push(`</section>`);
+  return parts.join("");
+}
+
+function renderMetaCampaign(m) {
+  if (!m) return "";
+  const parts = [`<section class="section"><h2 class="section-title">Meta Kampagnen-Struktur</h2>`];
+
+  if (m.architecture) {
+    parts.push(`<div class="kv highlight"><span class="kv-k">Architektur</span><span class="kv-v">${esc(m.architecture)}</span></div>`);
+  }
+
+  if (m.testing_campaign) {
+    const t = m.testing_campaign;
+    parts.push(`
+      <h3>1. Testing Campaign (ABO)</h3>
+      <div class="script-card">
+        ${t.name ? `<div class="kv"><span class="kv-k">Name</span><span class="kv-v">${esc(t.name)}</span></div>` : ""}
+        ${t.budget_formula ? `<div class="kv"><span class="kv-k">Budget-Formel</span><span class="kv-v"><code>${esc(t.budget_formula)}</code></span></div>` : ""}
+        ${t.budget_example ? `<div class="kv"><span class="kv-k">Budget-Beispiel</span><span class="kv-v">${esc(t.budget_example)}</span></div>` : ""}
+        ${t.creative_batches ? `<div class="kv"><span class="kv-k">Creative Batches</span><span class="kv-v">${esc(t.creative_batches)}</span></div>` : ""}
+        ${t.optimization ? `<div class="kv"><span class="kv-k">Optimization</span><span class="kv-v">${esc(t.optimization)}</span></div>` : ""}
+        ${t.exclusions ? `<div class="kv"><span class="kv-k">Exclusions</span><span class="kv-v">${esc(t.exclusions)}</span></div>` : ""}
+        ${t.attribution ? `<div class="kv"><span class="kv-k">Attribution</span><span class="kv-v">${esc(t.attribution)}</span></div>` : ""}
+      </div>`);
+  }
+
+  if (m.scaling_campaign) {
+    const s = m.scaling_campaign;
+    parts.push(`
+      <h3>2. Scaling CBO</h3>
+      <div class="script-card">
+        ${s.name ? `<div class="kv"><span class="kv-k">Name</span><span class="kv-v">${esc(s.name)}</span></div>` : ""}
+        ${s.budget ? `<div class="kv"><span class="kv-k">Budget</span><span class="kv-v">${esc(s.budget)}</span></div>` : ""}
+        ${s.strategy ? `<div class="kv"><span class="kv-k">Strategie</span><span class="kv-v">${esc(s.strategy)}</span></div>` : ""}
+        ${s.when_to_promote ? `<div class="kv"><span class="kv-k">Wann Promote</span><span class="kv-v">${esc(s.when_to_promote)}</span></div>` : ""}
+      </div>`);
+  }
+
+  if (m.advantage_plus) {
+    const a = m.advantage_plus;
+    parts.push(`
+      <h3>3. Advantage+ Sales (ASC+)</h3>
+      <div class="script-card">
+        ${a.when_ready ? `<div class="kv"><span class="kv-k">Wann bereit</span><span class="kv-v">${esc(a.when_ready)}</span></div>` : ""}
+        ${a.creative_mix ? `<div class="kv"><span class="kv-k">Creative-Mix</span><span class="kv-v">${esc(a.creative_mix)}</span></div>` : ""}
+        ${a.budget_share ? `<div class="kv"><span class="kv-k">Budget-Anteil</span><span class="kv-v">${esc(a.budget_share)}</span></div>` : ""}
+      </div>`);
+  }
+
+  if (m.portfolio_split) {
+    const p = m.portfolio_split;
+    parts.push(`
+      <h3>Portfolio-Split</h3>
+      <table class="data-table">
+        <thead><tr><th>Bucket</th><th>Anteil</th></tr></thead>
+        <tbody>
+          ${p.advantage_plus ? `<tr><td>Advantage+ Sales</td><td>${esc(p.advantage_plus)}</td></tr>` : ""}
+          ${p.retargeting ? `<tr><td>Retargeting</td><td>${esc(p.retargeting)}</td></tr>` : ""}
+          ${p.testing ? `<tr><td>Testing</td><td>${esc(p.testing)}</td></tr>` : ""}
+        </tbody>
+      </table>`);
+  }
+
+  if (m.scaling_rules) {
+    const r = m.scaling_rules;
+    parts.push(`
+      <h3>Scaling Rules</h3>
+      <div class="script-card">
+        ${r.rule_20_percent ? `<div class="kv"><span class="kv-k">20% Rule</span><span class="kv-v">${esc(r.rule_20_percent)}</span></div>` : ""}
+        ${r["72h_rule"] ? `<div class="kv"><span class="kv-k">72h Rule</span><span class="kv-v">${esc(r["72h_rule"])}</span></div>` : ""}
+        ${r.fatigue_signals?.length ? `<div class="script-section"><strong>Fatigue-Signale:</strong><ul>${r.fatigue_signals.map(f => `<li>${esc(f)}</li>`).join("")}</ul></div>` : ""}
+      </div>`);
+  }
+
+  if (m.budget_recommendations) {
+    const b = m.budget_recommendations;
+    parts.push(`
+      <h3>Budget-Empfehlungen</h3>
+      <table class="data-table">
+        <thead><tr><th>Metrik</th><th>Wert</th></tr></thead>
+        <tbody>
+          ${b.start_daily ? `<tr><td>Start täglich</td><td><strong>${esc(b.start_daily)}</strong></td></tr>` : ""}
+          ${b.month_1_target ? `<tr><td>Monat 1 Ziel</td><td><strong>${esc(b.month_1_target)}</strong></td></tr>` : ""}
+          ${b.break_even_roas ? `<tr><td>Break-Even ROAS</td><td><strong>${esc(b.break_even_roas)}</strong></td></tr>` : ""}
+        </tbody>
+      </table>`);
+  }
+
+  if (m.naming_convention) {
+    const n = m.naming_convention;
+    parts.push(`
+      <h3>Naming Convention</h3>
+      <div class="script-card">
+        ${n.campaign ? `<div class="kv"><span class="kv-k">Campaign</span><span class="kv-v"><code>${esc(n.campaign)}</code></span></div>` : ""}
+        ${n.adset ? `<div class="kv"><span class="kv-k">Adset</span><span class="kv-v"><code>${esc(n.adset)}</code></span></div>` : ""}
+        ${n.ad ? `<div class="kv"><span class="kv-k">Ad</span><span class="kv-v"><code>${esc(n.ad)}</code></span></div>` : ""}
+      </div>`);
+  }
+
+  parts.push(`</section>`);
+  return parts.join("");
+}
+
 function renderImplementation(result) {
   const parts = [];
   parts.push(`<section class="section"><h2 class="section-title">Umsetzungsplan</h2>`);
@@ -482,6 +654,8 @@ export function generateReport(result, form, awarenessLevel) {
   ${renderOffer(result.offer)}
   ${renderPain(result.pain)}
   ${renderHooks(result.hooks)}
+  ${renderCreatives(result.creatives)}
+  ${renderMetaCampaign(result.meta_campaign)}
   ${renderScripts(result.scripts)}
   ${renderFunnel(result.funnel)}
   ${renderSpec(result.spec)}
