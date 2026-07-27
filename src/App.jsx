@@ -666,7 +666,7 @@ function MetaCampaignTab({ data }) {
           <h3 className="section-title gold-accent">Scaling Rules</h3>
           <div className="script-card">
             <div className="kv"><span className="kv-k">20% Rule</span><span className="kv-v">{data.scaling_rules.rule_20_percent}</span></div>
-            <div className="kv"><span className="kv-k">72h Rule</span><span className="kv-v">{data.scaling_rules.72h_rule}</span></div>
+            <div className="kv"><span className="kv-k">72h Rule</span><span className="kv-v">{data.scaling_rules["72h_rule"]}</span></div>
             {data.scaling_rules.fatigue_signals?.length > 0 && (
               <div className="script-section">
                 <strong>Fatigue-Signale:</strong>
